@@ -18,7 +18,7 @@
   .tab.on { background:var(--verde); color:#fff; border-color:var(--verde); }
   .card { background:#fff; border:1px solid var(--borde); border-radius:12px; padding:14px; margin-bottom:12px; }
   label { font-size:.85rem; color:var(--gris); display:block; margin-bottom:4px; }
-  select, input[type=number] { width:100%; padding:9px; border:1px solid var(--borde); border-radius:8px; font-size:1rem; background:#fff; }
+  select, input[type=number], input[type=text] { width:100%; padding:9px; border:1px solid var(--borde); border-radius:8px; font-size:1rem; background:#fff; }
   input[type=range] { width:100%; accent-color:var(--verde); }
   .row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
   .big { font-size:1.6rem; font-weight:700; color:var(--verde); }
@@ -94,7 +94,8 @@
     <button class="tab on" data-v="recetas">🔥 Recetas</button>
     <button class="tab" data-v="plan">📅 Plan</button>
     <button class="tab" data-v="compra">🧺 Compra</button>
-    <button class="tab" data-v="colegio">🎒 Menú escolar</button>
+    <button class="tab" data-v="colegio">🎒 Colegio</button>
+    <button class="tab" data-v="comercio">🏪 Soy comercio</button>
   </div>
 
   <!-- VISTA COMPRA -->
@@ -155,6 +156,37 @@
     </div>
 
     <div id="tiendas"></div>
+  </section>
+
+  <!-- VISTA COMERCIO -->
+  <section id="v-comercio" class="hide">
+    <div class="card">
+      <b>Tu comercio en la app</b>
+      <p class="aviso" style="margin:8px 0">Sube tus productos y precios desde el móvil. Aparecen al momento para los clientes de tu zona. En esta demo se guardan en tu navegador.</p>
+      <label for="cNombre">Nombre del comercio</label><input type="text" id="cNombre" placeholder="Ej. Frutería Can Joan">
+      <div class="row" style="margin-top:8px">
+        <div><label for="cTipo">Tipo</label><select id="cTipo">
+          <option>Frutas y verduras</option><option>Carne y pescado</option><option>Panadería</option><option>Comida preparada</option><option>Despensa y básicos</option><option>Otro</option></select></div>
+        <div><label for="cZona">Zona</label><select id="cZona"></select></div>
+      </div>
+      <label for="cHorario" style="margin-top:8px">Horario</label><input type="text" id="cHorario" placeholder="8:00–14:00">
+      <button class="btn" id="cGuardar" style="margin-top:10px">Guardar comercio</button>
+    </div>
+    <div class="card hide" id="cProd">
+      <b>Añadir producto o plato</b>
+      <label for="pNombre" style="margin-top:8px">Nombre</label><input type="text" id="pNombre" placeholder="Ej. Tomate de ramellet (kg)">
+      <div class="row" style="margin-top:8px">
+        <div><label for="pPrecio">Precio (€)</label><input type="number" id="pPrecio" min="0" step="0.05"></div>
+        <div><label for="pCat">Categoría</label><select id="pCat">
+          <option value="fresco">Fruta y verdura</option><option value="carne">Carne y pescado</option><option value="pan">Pan</option><option value="despensa">Despensa</option><option value="preparado">Comida preparada</option></select></div>
+      </div>
+      <label style="margin-top:8px">Alérgenos que contiene</label>
+      <div class="chips" id="pAl"></div>
+      <button class="btn" id="pAdd">+ Añadir</button>
+      <div id="pLista" style="margin-top:12px"></div>
+      <button class="btn sec" id="cExport" style="margin-top:8px">⬇ Descargar mis datos (JSON)</button>
+      <button class="btn sec" id="cBorrar" style="margin-top:8px;color:var(--rojo)">Borrar mi comercio</button>
+    </div>
   </section>
 
   <!-- VISTA COLEGIO -->

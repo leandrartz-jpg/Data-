@@ -52,12 +52,14 @@ function init() {
     $("#v-plan").classList.toggle("hide", t.dataset.v !== "plan");
     $("#v-compra").classList.toggle("hide", t.dataset.v !== "compra");
     $("#v-colegio").classList.toggle("hide", t.dataset.v !== "colegio");
+    $("#v-comercio").classList.toggle("hide", t.dataset.v !== "comercio");
   }));
 
   $("#sugerir").onclick = sugerir;
   $("#vaciar").onclick = () => { state.cesta = {}; render(); };
   $("#genMenu").onclick = generarMenu;
   $("#genPlan").onclick = generarPlan;
+  initComercio();
   $("#pedir").onclick = reservar;
   $("#recFiltros").onclick = (e) => {
     const f = e.target.dataset.f; if (!f) return;
@@ -316,6 +318,68 @@ function generarPlan() {
     </div>`;
   $("#planCesta").onclick = () => { state.cesta = {}; mejor.c.lineas.forEach((l) => (state.cesta[l.p.id] = l.u)); render(); document.querySelector('.tab[data-v="compra"]').click(); };
   $("#planOtra").onclick = generarPlan;
+}
+
+// ---------- panel del comercio ----------
+const miCom = { data: null, al: new Set() };
+function refrescarTodo() { Object.keys(cacheVista).forEach((k) => delete cacheVista[k]); render(); renderComercio(); }
+
+function sincronizarComercio() {
+  const i = COMERCIOS.findIndex((c) => c.propio);
+  if (i >= 0) COMERCIOS.splice(i, 1);
+  if (miCom.data) COMERCIOS.push(miCom.data);
+  store.set("miComercio", miCom.data);
+}
+
+function initComercio() {
+  $("#cZona").innerHTML = Object.entries(ZONAS).filter(([, z]) => z.activa).map(([k, z]) => `<option value="${k}">${z.nombre}</option>`).join("");
+  $("#pAl").innerHTML = ALERGENOS.map((x) => `<span class="chip no" data-a="${x}">${x}</span>`).join("");
+  $("#pAl").onclick = (e) => {
+    const x = e.target.dataset.a; if (!x) return;
+    miCom.al.has(x) ? miCom.al.delete(x) : miCom.al.add(x);
+    document.querySelectorAll("#pAl .chip").forEach((c) => c.classList.toggle("on", miCom.al.has(c.dataset.a)));
+  };
+  const guardado = store.get("miComercio", null);
+  if (guardado) { miCom.data = guardado; sincronizarComercio(); }
+  $("#cGuardar").onclick = () => {
+    const nombre = $("#cNombre").value.trim();
+    if (!nombre) return alert("Pon el nombre de tu comercio.");
+    miCom.data = { id: "u1", propio: true, productos: miCom.data ? miCom.data.productos : [], nombre,
+      tipo: $("#cTipo").value, zona: $("#cZona").value, horario: $("#cHorario").value.trim() || "Consultar" };
+    sincronizarComercio(); refrescarTodo();
+  };
+  $("#pAdd").onclick = () => {
+    const n = $("#pNombre").value.trim(), p = parseFloat($("#pPrecio").value);
+    if (!n || !(p >= 0)) return alert("Pon nombre y precio.");
+    miCom.data.productos.push({ id: "u_" + Date.now(), n, p, cat: $("#pCat").value, al: [...miCom.al] });
+    $("#pNombre").value = ""; $("#pPrecio").value = ""; miCom.al.clear();
+    document.querySelectorAll("#pAl .chip").forEach((c) => c.classList.remove("on"));
+    sincronizarComercio(); refrescarTodo();
+  };
+  $("#cBorrar").onclick = () => { if (!confirm("¿Borrar tu comercio y todos sus productos?")) return; miCom.data = null; sincronizarComercio(); refrescarTodo(); };
+  $("#cExport").onclick = () => {
+    const url = URL.createObjectURL(new Blob([JSON.stringify(miCom.data, null, 2)], { type: "application/json" }));
+    const a = document.createElement("a"); a.href = url; a.download = "mi-comercio.json"; a.click(); URL.revokeObjectURL(url);
+  };
+  renderComercio();
+}
+
+function renderComercio() {
+  const c = miCom.data;
+  $("#cProd").classList.toggle("hide", !c);
+  if (c) { $("#cNombre").value = c.nombre; $("#cTipo").value = c.tipo; $("#cZona").value = c.zona; $("#cHorario").value = c.horario === "Consultar" ? "" : c.horario; }
+  $("#cGuardar").textContent = c ? "Actualizar comercio" : "Guardar comercio";
+  $("#pLista").innerHTML = c ? (c.productos.length ? c.productos.map((p) => `
+    <div class="prod"><div>${p.n}<small>${(p.al || []).map((x) => `<span class="tag">${x}</span>`).join("")}</small></div>
+    <div class="qty"><input type="number" step="0.05" min="0" value="${p.p}" data-pid="${p.id}" style="width:80px"> €
+    <button data-del="${p.id}">×</button></div></div>`).join("") : "<em>Aún no has añadido productos.</em>") : "";
+  document.querySelectorAll("#pLista input[data-pid]").forEach((el) => (el.onchange = () => {
+    const p = c.productos.find((x) => x.id === el.dataset.pid), v = parseFloat(el.value);
+    if (p && v >= 0) { p.p = v; sincronizarComercio(); refrescarTodo(); }
+  }));
+  document.querySelectorAll("#pLista button[data-del]").forEach((el) => (el.onclick = () => {
+    c.productos = c.productos.filter((x) => x.id !== el.dataset.del); sincronizarComercio(); refrescarTodo();
+  }));
 }
 
 init();
