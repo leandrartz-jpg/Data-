@@ -48,6 +48,20 @@
   .hide { display:none; }
   .lista li { margin:3px 0; }
   .soon { opacity:.6; }
+  .hero { display:flex; justify-content:space-between; align-items:center; background:linear-gradient(135deg,#2f7d4f,#4aa36d); color:#fff; }
+  .hero small { opacity:.9; } .hero b { font-size:1.3rem; color:#fff; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px; }
+  .rc { background:#fff; border:1px solid var(--borde); border-radius:16px; overflow:hidden; cursor:pointer; }
+  .rc .em { font-size:3.4rem; text-align:center; padding:18px 0 10px; background:var(--verde-c); }
+  .rc .bd { padding:10px 12px 12px; } .rc h4 { margin:0 0 6px; font-size:.95rem; line-height:1.2; }
+  .rc .pr { color:var(--verde); font-weight:700; } .rc small { color:var(--gris); }
+  .modal { position:fixed; inset:0; background:rgba(0,0,0,.5); display:flex; align-items:flex-end; justify-content:center; z-index:10; }
+  .modal.hide { display:none; }
+  .sheet { background:#fff; width:100%; max-width:560px; max-height:88vh; overflow:auto; border-radius:20px 20px 0 0; padding:18px; }
+  .sheet h2 { margin:0 0 4px; } .sheet ol { padding-left:20px; }
+  .cmp { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:12px 0; }
+  .cmp > div { border:1px solid var(--borde); border-radius:12px; padding:10px; font-size:.85rem; }
+  .cmp .win { border-color:var(--verde); background:var(--verde-c); }
 </style>
 </head>
 <body>
@@ -71,12 +85,25 @@
   </div>
 
   <div class="tabs">
-    <button class="tab on" data-v="compra">🧺 Mi compra</button>
+    <button class="tab on" data-v="recetas">🔥 Recetas</button>
+    <button class="tab" data-v="compra">🧺 Compra</button>
     <button class="tab" data-v="colegio">🎒 Menú escolar</button>
   </div>
 
   <!-- VISTA COMPRA -->
-  <section id="v-compra">
+  <section id="v-recetas">
+    <div class="card hero">
+      <div><b id="racha">🔥 0 días</b><br><small>cocinando en casa</small></div>
+      <div style="text-align:right"><b id="ahorro" style="color:var(--verde)">0,00 €</b><br><small>ahorrado vs pedir a domicilio*</small></div>
+    </div>
+    <div class="chips" id="recFiltros">
+      <span class="chip on" data-f="todo">Todas</span><span class="chip" data-f="rapido">⚡ Rápidas</span>
+      <span class="chip" data-f="barato">💸 Menos de 3 €</span><span class="chip" data-f="vegano">🌱 Veganas</span>
+    </div>
+    <div id="recetasGrid" class="grid"></div>
+    <p class="aviso">*Estimación orientativa. Precios y ahorro de ejemplo; se calcularán con precios reales de cada comercio.</p>
+  </section>
+  <section id="v-compra" class="hide">
     <div class="card">
       <label for="presu">Presupuesto semanal: <b id="presuTxt"></b></label>
       <input type="range" id="presu" min="20" max="300" step="5" value="70">
@@ -135,7 +162,9 @@
   <button class="btn" id="pedir">Reservar</button>
 </footer>
 
+<div id="modal" class="modal hide"><div class="sheet" id="sheet"></div></div>
 <script src="data.js"></script>
+<script src="recipes.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

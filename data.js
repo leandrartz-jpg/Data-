@@ -98,3 +98,22 @@ const COMERCIOS = [
       { id: "m5", n: "Fruta", p: 0.6, cat: "colegio", curso: 3, al: [] },
     ] },
 ];
+
+// Colmado de barrio en cada zona (despensa básica) — datos de ejemplo
+["palma", "calvia", "madrid"].forEach((z, i) => {
+  COMERCIOS.push({ id: 100 + i, zona: z, nombre: "Colmado del barrio", tipo: "Despensa y básicos", horario: "9:00–21:00",
+    productos: [
+      { id: z + "_huevos", n: "Huevos (docena)", p: 3.2, cat: "despensa", al: ["huevo"] },
+      { id: z + "_pasta", n: "Pasta (500 g)", p: 1.4, cat: "despensa", al: ["gluten"] },
+      { id: z + "_arroz", n: "Arroz (1 kg)", p: 1.9, cat: "despensa" },
+      { id: z + "_aceite", n: "Aceite de oliva (1 L)", p: 8.5, cat: "despensa" },
+      { id: z + "_queso", n: "Queso rallado (200 g)", p: 2.6, cat: "despensa", al: ["lactosa"] },
+      { id: z + "_atun", n: "Atún en lata", p: 1.8, cat: "despensa", al: ["pescado"] },
+      { id: z + "_garb", n: "Garbanzos cocidos (bote)", p: 1.2, cat: "despensa" },
+      { id: z + "_tort", n: "Tortillas de trigo (8 ud)", p: 2.0, cat: "despensa", al: ["gluten"] },
+      { id: z + "_cebolla", n: "Cebolla (kg)", p: 1.5, cat: "fresco" },
+      { id: z + "_aguacate", n: "Aguacate (2 ud)", p: 2.4, cat: "fresco" },
+      { id: z + "_pollo", n: "Pechuga de pollo (400 g)", p: 3.9, cat: "carne" },
+      { id: z + "_picada", n: "Carne picada (400 g)", p: 3.8, cat: "carne" },
+    ] });
+});
