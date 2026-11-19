@@ -3,13 +3,26 @@ const eur = (n) => n.toFixed(2).replace(".", ",") + " €";
 const ALERGENOS = ["gluten", "lactosa", "huevo", "pescado"];
 const CATS = { todo: "Todo", fresco: "Fruta y verdura", carne: "Carne y pescado", pan: "Pan", despensa: "Despensa", preparado: "Comida preparada" };
 
-const state = { zona: "palma", cat: "todo", prep: 0, evitarCompra: new Set(), evitarEsc: new Set(), cesta: {} };
+const state = { tienda: "local", modo: "cocinar", utens: new Set(["fuego", "horno", "microondas"]), zona: "palma", cat: "todo", prep: 0, evitarCompra: new Set(), evitarEsc: new Set(), cesta: {} };
 
 // ---------- inicio ----------
 function init() {
   $("#zona").innerHTML = Object.entries(ZONAS)
     .map(([k, z]) => `<option value="${k}" ${z.activa ? "" : "disabled"}>${z.nombre}</option>`).join("");
   $("#zona").onchange = (e) => { state.zona = e.target.value; state.cesta = {}; render(); };
+  $("#tienda").innerHTML = Object.entries(CADENAS).map(([k, c]) => `<option value="${k}">${c.ico} ${c.nombre}</option>`).join("") +
+    CADENAS_PENDIENTES.map((n) => `<option disabled>${n} (próximamente)</option>`).join("");
+  $("#tienda").onchange = (e) => { state.tienda = e.target.value; state.cesta = {}; render(); };
+  $("#modoChips").onclick = (e) => {
+    const m = e.target.dataset.m; if (!m) return;
+    state.modo = m; document.querySelectorAll("#modoChips .chip").forEach((x) => x.classList.toggle("on", x.dataset.m === m));
+  };
+  $("#utChips").onclick = (e) => {
+    const u = e.target.dataset.u; if (!u) return;
+    state.utens.has(u) ? state.utens.delete(u) : state.utens.add(u);
+    document.querySelectorAll("#utChips .chip").forEach((x) => x.classList.toggle("on", state.utens.has(x.dataset.u)));
+    renderRecetas();
+  };
   $("#personas").oninput = render;
   $("#presu").oninput = render;
 
@@ -64,8 +77,23 @@ function toggleAlergeno(e, set, root) {
 }
 
 // ---------- datos ----------
-const comerciosZona = () => COMERCIOS.filter((c) => c.zona === state.zona && !c.productos.every((p) => p.cat === "colegio"));
-const todosProductos = () => COMERCIOS.flatMap((c) => c.productos.map((p) => ({ ...p, comercio: c })));
+// Vista de comercios según dónde compra el usuario: locales (datos originales) o una cadena (precios escalados por índice OCU)
+const cacheVista = {};
+function vista() {
+  if (state.tienda === "local") return COMERCIOS;
+  if (cacheVista[state.tienda]) return cacheVista[state.tienda];
+  const ch = CADENAS[state.tienda], f = ch.idx / CADENAS.local.idx, out = [];
+  Object.keys(ZONAS).filter((z) => ZONAS[z].activa).forEach((z) => {
+    const base = COMERCIOS.filter((c) => c.zona === z && !c.productos.some((p) => p.cat === "colegio"));
+    const prods = base.flatMap((c) => c.productos).filter((p) => p.cat !== "preparado").map((p) => ({ ...p, p: +(p.p * f).toFixed(2) }));
+    const pre = PRECOCINADOS_SUPER.map((p) => ({ ...p, id: z + "_" + p.id, p: +(p.p * f).toFixed(2) }));
+    out.push({ id: "s_" + z, zona: z, nombre: ch.nombre, tipo: "Supermercado", horario: "Horario de tienda", productos: [...prods, ...pre] });
+  });
+  out.push(...COMERCIOS.filter((c) => c.productos.some((p) => p.cat === "colegio")));
+  return (cacheVista[state.tienda] = out);
+}
+const comerciosZona = () => vista().filter((c) => c.zona === state.zona && !c.productos.every((p) => p.cat === "colegio"));
+const todosProductos = () => vista().flatMap((c) => c.productos.map((p) => ({ ...p, comercio: c })));
 const productoPorId = (id) => todosProductos().find((p) => p.id === id);
 const permitido = (p, evitar) => !(p.al || []).some((a) => evitar.has(a));
 
@@ -181,7 +209,7 @@ function costeReceta(r) {
 
 function renderRecetas() {
   const filtro = state.filtro || "todo";
-  const lista = RECETAS.map((r) => ({ r, c: costeReceta(r) })).filter(({ r, c }) => c.completa &&
+  const lista = RECETAS.map((r) => ({ r, c: costeReceta(r) })).filter(({ r, c }) => c.completa && r.ut.every((u) => state.utens.has(u)) &&
     (filtro === "todo" || (filtro === "barato" ? c.porRacion < 3 : r.tags.includes(filtro))));
   $("#recetasGrid").innerHTML = lista.map(({ r, c }) => `
     <div class="rc" data-id="${r.id}"><div class="em">${r.e}</div><div class="bd">
@@ -195,7 +223,8 @@ function renderRecetas() {
 
 function abrirReceta(id) {
   const r = RECETAS.find((x) => x.id === id), c = costeReceta(r);
-  const hecho = r.hecho.map((h) => productoPorId(h)).find((p) => p && p.comercio.zona === state.zona);
+  const hids = state.tienda === "local" ? r.hecho : (r.hs ? [state.zona + "_" + r.hs] : []);
+  const hecho = hids.map((h) => productoPorId(h)).find((p) => p && p.comercio.zona === state.zona);
   $("#sheet").innerHTML = `
     <h2>${r.e} ${r.t}</h2><small style="color:var(--gris)">⏱ ${r.min} min · ${r.dif} · ${r.raciones} raciones</small>
     <div class="cmp">
@@ -232,35 +261,55 @@ function costeCompra(recetas, personas) {
 }
 const resolverCostes = (r) => r.ing.map(resolverIng);
 
+const platosHechos = () => comerciosZona().flatMap((c) => c.productos.filter((p) => p.cat === "preparado" && permitido(p, state.evitarCompra)).map((p) => ({ ...p, comercio: c })));
+
+function costePlan(items, personas) {
+  const c = costeCompra(items.filter((i) => i.r).map((i) => i.r), personas);
+  const hechos = {};
+  items.filter((i) => i.p).forEach((i) => { (hechos[i.p.id] ||= { p: i.p, u: 0 }).u += personas; });
+  const lineas = [...c.lineas, ...Object.values(hechos)];
+  return { total: lineas.reduce((s, l) => s + l.p.p * l.u, 0), lineas };
+}
+
 function generarPlan() {
   const presu = +$("#presu").value, n = +$("#diasPlan").value, piso = Math.max(1, +$("#piso").value);
-  const personas = Math.max(1, +$("#personas").value);
-  const pool = RECETAS.filter((r) => costeReceta(r).completa);
-  if (pool.length < 2) { $("#planOut").innerHTML = '<div class="card">Faltan recetas en esta zona.</div>'; return; }
+  const personas = Math.max(1, +$("#personas").value), modo = state.modo;
+  const recetas = RECETAS.filter((r) => costeReceta(r).completa && r.ut.every((u) => state.utens.has(u)));
+  const hechos = platosHechos();
+  const usaR = modo !== "precocinado" ? recetas : [], usaH = modo !== "cocinar" ? hechos : [];
+  if (modo === "cocinar" && !recetas.length) return ($("#planOut").innerHTML = '<div class="card">Con esos utensilios no hay recetas disponibles. Activa alguno más.</div>');
+  if (modo === "precocinado" && !hechos.length) return ($("#planOut").innerHTML = '<div class="card">No hay platos precocinados en esta zona.</div>');
+  const maxRep = Math.max(Math.floor(n / 3), n - (usaR.length + usaH.length));
+  const elige = (arr) => arr[Math.floor(Math.random() * arr.length)];
   let mejor = null;
   for (let it = 0; it < 4000; it++) {
-    const sel = Array.from({ length: n }, () => pool[Math.floor(Math.random() * pool.length)]);
-    const rep = n - new Set(sel.map((r) => r.id)).size;
-    if (rep > Math.max(1, Math.floor(n / 3))) continue; // variedad mínima
-    const c = costeCompra(sel, personas);
-    const score = c.total + rep * 2;
+    const sel = [];
+    for (let k = 0; k < n; k++) {
+      const quiereReceta = modo === "cocinar" ? true : modo === "precocinado" ? false : k < Math.ceil(n / 2);
+      if ((quiereReceta && usaR.length) || !usaH.length) sel.push({ r: elige(usaR) });
+      else sel.push({ p: elige(usaH) });
+    }
+    const rep = n - new Set(sel.map((i) => (i.r ? i.r.id : i.p.id))).size;
+    if (rep > maxRep) continue;
+    const c = costePlan(sel, personas), score = c.total + rep * 2;
     if (!mejor || score < mejor.score) mejor = { sel, c, score };
   }
-  const separado = mejor.sel.reduce((s, r) => s + costeCompra([r], personas).total, 0);
+  if (!mejor) return ($("#planOut").innerHTML = '<div class="card">No he podido montar el plan. Prueba con menos días.</div>');
+  const separado = mejor.sel.reduce((s, i) => s + costePlan([i], personas).total, 0);
   const ahorroReuso = Math.max(0, separado - mejor.c.total);
   const dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
   const porTienda = {};
   mejor.c.lineas.forEach((l) => (porTienda[l.p.comercio.nombre] ||= []).push(l));
   const dentro = mejor.c.total <= presu;
   $("#planOut").innerHTML = `
-    <div class="card hero"><div><b>${eur(mejor.c.total)}</b><br><small>compra de la semana</small></div>
+    <div class="card hero"><div><b>${eur(mejor.c.total)}</b><br><small>compra en ${CADENAS[state.tienda].nombre}</small></div>
       <div style="text-align:right"><b>${eur(mejor.c.total / piso)}</b><br><small>por persona (${piso})</small></div></div>
     <div class="card">
-      ${mejor.sel.map((r, i) => `<div class="dia"><b>${dias[i]}</b><div>${r.e} ${r.t}<br><small style="color:var(--gris)">⏱ ${r.min} min</small></div></div>`).join("")}
-      <p style="margin-bottom:0">${dentro ? `<span style="color:var(--verde)">✔ Dentro de tu presupuesto (${eur(presu)})</span>` : `<span style="color:var(--rojo)">✘ Supera tu presupuesto (${eur(presu)}); sube el presupuesto o baja las cenas.</span>`}<br>
-      🌿 Al reutilizar ingredientes ahorras <b>${eur(ahorroReuso)}</b> frente a comprar cada receta por separado.</p>
+      ${mejor.sel.map((i, k) => `<div class="dia"><b>${dias[k]}</b><div>${i.r ? `${i.r.e} ${i.r.t}<br><small style="color:var(--gris)">👩‍🍳 Cocinar · ⏱ ${i.r.min} min</small>` : `🍽 ${i.p.n}<br><small style="color:var(--gris)">Precocinado · ${i.p.comercio.nombre}</small>`}</div></div>`).join("")}
+      <p style="margin-bottom:0">${dentro ? `<span style="color:var(--verde)">✔ Dentro de tu presupuesto (${eur(presu)})</span>` : `<span style="color:var(--rojo)">✘ Supera tu presupuesto (${eur(presu)}); sube el presupuesto o baja las cenas.</span>`}
+      ${ahorroReuso > 0 ? `<br>🌿 Al reutilizar ingredientes ahorras <b>${eur(ahorroReuso)}</b> frente a comprar cada receta por separado.` : ""}</p>
     </div>
-    <div class="card"><b>Lista de la compra por tienda</b>
+    <div class="card"><b>Lista de la compra</b>
       ${Object.entries(porTienda).map(([t, ls]) => `<div style="margin-top:8px"><u>${t}</u><ul class="lista">${ls.map((l) => `<li>${l.u} × ${l.p.n} <small style="color:var(--gris)">${eur(l.p.p * l.u)}</small></li>`).join("")}</ul></div>`).join("")}
       <button class="btn" id="planCesta" style="width:100%">🧺 Pasar todo a la cesta</button>
       <button class="btn sec" id="planOtra" style="width:100%;margin-top:8px">🔄 Otra combinación</button>

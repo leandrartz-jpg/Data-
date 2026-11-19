@@ -84,6 +84,12 @@
     </div>
   </div>
 
+  <div class="card" style="margin-top:-4px">
+    <label for="tienda">¿Dónde quieres comprar?</label>
+    <select id="tienda"></select>
+    <p class="aviso" style="margin:8px 0 0">Precios de ejemplo escalados con el índice de precios OCU 2026 de cada cadena (referencia: ocu.org). No son precios reales producto a producto.</p>
+  </div>
+
   <div class="tabs">
     <button class="tab on" data-v="recetas">🔥 Recetas</button>
     <button class="tab" data-v="plan">📅 Plan</button>
@@ -108,6 +114,14 @@
     <div class="card">
       <b>Tu semana resuelta</b>
       <p class="aviso" style="margin:8px 0">Elegimos recetas que comparten ingredientes para gastar menos y desperdiciar nada.</p>
+      <label>¿Cómo quieres comer?</label>
+      <div class="chips" id="modoChips">
+        <span class="chip on" data-m="cocinar">👩‍🍳 Cocinar</span><span class="chip" data-m="precocinado">🍽 Precocinado</span><span class="chip" data-m="mixto">🔀 Mixto</span>
+      </div>
+      <label>¿Qué tienes en casa?</label>
+      <div class="chips" id="utChips">
+        <span class="chip on" data-u="fuego">🔥 Fuego/placa</span><span class="chip on" data-u="horno">♨️ Horno</span><span class="chip on" data-u="microondas">📡 Microondas</span>
+      </div>
       <div class="row">
         <div><label for="diasPlan">Cenas a planificar</label>
           <select id="diasPlan"><option>3</option><option selected>5</option><option>7</option></select></div>

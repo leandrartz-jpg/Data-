@@ -117,3 +117,26 @@ const COMERCIOS = [
       { id: z + "_picada", n: "Carne picada (400 g)", p: 3.8, cat: "carne" },
     ] });
 });
+
+// Índice de precios de la cesta OCU 2026 (100 = cadena más barata, DANI). Fuente: ocu.org
+// "local" usa el índice de supermercados independientes (108) como referencia de los comercios de barrio.
+// Los precios de producto de la app son de ejemplo; el índice solo los escala entre cadenas.
+const CADENAS = {
+  local:     { nombre: "Comercios locales", idx: 108, ico: "🏪" },
+  mercadona: { nombre: "Mercadona",         idx: 105, ico: "🟢" },
+  lidl:      { nombre: "Lidl",              idx: 105, ico: "🔵" },
+  aldi:      { nombre: "Aldi",              idx: 107, ico: "🟠" },
+  eci:       { nombre: "El Corte Inglés",   idx: 130, ico: "🟩" },
+};
+const CADENAS_PENDIENTES = ["Eroski", "Agromart"]; // sin datos fiables todavía
+
+// Platos precocinados típicos de súper (precios de ejemplo por ración)
+const PRECOCINADOS_SUPER = [
+  { id: "sp1", n: "Lasaña de carne (ración)", p: 2.9, cat: "preparado", al: ["gluten", "lactosa", "huevo"] },
+  { id: "sp2", n: "Paella (ración)", p: 2.8, cat: "preparado", al: [] },
+  { id: "sp3", n: "Pollo asado con patatas (ración)", p: 3.2, cat: "preparado", al: [] },
+  { id: "sp4", n: "Tortilla de patata (ración)", p: 1.6, cat: "preparado", al: ["huevo"] },
+  { id: "sp5", n: "Lentejas estofadas (ración)", p: 2.2, cat: "preparado", al: [] },
+  { id: "sp6", n: "Macarrones boloñesa (ración)", p: 2.6, cat: "preparado", al: ["gluten"] },
+  { id: "sp7", n: "Croquetas (6 ud)", p: 2.5, cat: "preparado", al: ["gluten", "lactosa", "huevo"] },
+];
