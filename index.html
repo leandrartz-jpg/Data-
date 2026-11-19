@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comercio Local · Compra con tu presupuesto</title>
+<meta name="theme-color" content="#2f7d4f">
+<style>
+  :root { --verde:#2f7d4f; --verde-c:#e7f3ec; --naranja:#e8892b; --gris:#6b7280; --borde:#e5e7eb; --bg:#fafaf7; --txt:#1f2937; --rojo:#c0392b; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--txt); }
+  header { background:var(--verde); color:#fff; padding:14px 16px; }
+  header h1 { margin:0; font-size:1.25rem; }
+  header p { margin:2px 0 0; font-size:.85rem; opacity:.9; }
+  main { max-width:860px; margin:0 auto; padding:12px 16px 120px; }
+  .tabs { display:flex; gap:8px; margin:12px 0; }
+  .tab { flex:1; padding:10px; border:1px solid var(--borde); background:#fff; border-radius:10px; font-size:.95rem; cursor:pointer; }
+  .tab.on { background:var(--verde); color:#fff; border-color:var(--verde); }
+  .card { background:#fff; border:1px solid var(--borde); border-radius:12px; padding:14px; margin-bottom:12px; }
+  label { font-size:.85rem; color:var(--gris); display:block; margin-bottom:4px; }
+  select, input[type=number] { width:100%; padding:9px; border:1px solid var(--borde); border-radius:8px; font-size:1rem; background:#fff; }
+  input[type=range] { width:100%; accent-color:var(--verde); }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .big { font-size:1.6rem; font-weight:700; color:var(--verde); }
+  .bar { height:12px; background:var(--borde); border-radius:6px; overflow:hidden; margin:8px 0 4px; }
+  .bar > div { height:100%; background:var(--verde); transition:width .2s; }
+  .bar.over > div { background:var(--rojo); }
+  button { font:inherit; cursor:pointer; }
+  .btn { background:var(--verde); color:#fff; border:0; padding:11px 16px; border-radius:10px; font-weight:600; }
+  .btn.sec { background:var(--verde-c); color:var(--verde); }
+  .btn.warn { background:var(--naranja); }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; margin:6px 0; }
+  .chip { padding:5px 11px; border:1px solid var(--borde); border-radius:20px; background:#fff; font-size:.82rem; cursor:pointer; }
+  .chip.on { background:var(--verde-c); border-color:var(--verde); color:var(--verde); font-weight:600; }
+  .chip.no.on { background:#fdecea; border-color:var(--rojo); color:var(--rojo); }
+  .shop h3 { margin:0 0 2px; font-size:1.05rem; }
+  .shop .meta { color:var(--gris); font-size:.8rem; margin-bottom:8px; }
+  .prod { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-top:1px solid var(--borde); gap:8px; }
+  .prod small { color:var(--gris); display:block; }
+  .tag { display:inline-block; font-size:.7rem; background:#fff3e3; color:#a85d0e; padding:1px 7px; border-radius:10px; margin-right:3px; }
+  .qty { display:flex; align-items:center; gap:8px; }
+  .qty button { width:30px; height:30px; border-radius:50%; border:1px solid var(--verde); background:#fff; color:var(--verde); font-size:1.1rem; }
+  .qty span { min-width:16px; text-align:center; }
+  .dia { display:flex; gap:10px; padding:10px 0; border-top:1px solid var(--borde); }
+  .dia b { min-width:78px; }
+  footer { position:fixed; bottom:0; left:0; right:0; background:#fff; border-top:1px solid var(--borde); padding:10px 16px; display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .aviso { font-size:.78rem; color:var(--gris); background:#fff8e6; border:1px solid #f4e2b0; padding:8px 10px; border-radius:8px; }
+  .hide { display:none; }
+  .lista li { margin:3px 0; }
+  .soon { opacity:.6; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🛒 Comercio Local</h1>
+  <p>Compra en tiendas de tu barrio según tu presupuesto semanal</p>
+</header>
+
+<main>
+  <div class="card">
+    <div class="row">
+      <div>
+        <label for="zona">Zona</label>
+        <select id="zona"></select>
+      </div>
+      <div>
+        <label for="personas">Personas en casa</label>
+        <input type="number" id="personas" min="1" max="12" value="3">
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on" data-v="compra">🧺 Mi compra</button>
+    <button class="tab" data-v="colegio">🎒 Menú escolar</button>
+  </div>
+
+  <!-- VISTA COMPRA -->
+  <section id="v-compra">
+    <div class="card">
+      <label for="presu">Presupuesto semanal: <b id="presuTxt"></b></label>
+      <input type="range" id="presu" min="20" max="300" step="5" value="70">
+      <label style="margin-top:10px">¿Cuánta comida ya preparada quieres?</label>
+      <div class="chips" id="prepChips">
+        <span class="chip on" data-v="0">Ninguna</span>
+        <span class="chip" data-v="0.2">Un poco</span>
+        <span class="chip" data-v="0.4">Bastante</span>
+        <span class="chip" data-v="0.7">Casi todo</span>
+      </div>
+      <div style="margin-top:10px">
+        <button class="btn warn" id="sugerir">✨ Sugerirme una cesta</button>
+        <button class="btn sec" id="vaciar">Vaciar</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="chips" id="catChips"></div>
+      <div class="chips" id="alergiaCompra"></div>
+    </div>
+
+    <div id="tiendas"></div>
+  </section>
+
+  <!-- VISTA COLEGIO -->
+  <section id="v-colegio" class="hide">
+    <div class="card">
+      <div class="aviso">Demostración para centros escolares y administraciones: menú semanal con proveedores locales, control de alérgenos y coste por alumno.</div>
+      <div class="row" style="margin-top:10px">
+        <div>
+          <label for="presuEsc">Presupuesto por alumno y día (€)</label>
+          <input type="number" id="presuEsc" min="2" max="10" step="0.1" value="4.5">
+        </div>
+        <div>
+          <label for="alumnos">Nº de alumnos</label>
+          <input type="number" id="alumnos" min="1" value="120">
+        </div>
+      </div>
+      <label style="margin-top:10px">Excluir alérgenos del menú:</label>
+      <div class="chips" id="alergiaEsc"></div>
+      <button class="btn" id="genMenu">Generar menú semanal</button>
+    </div>
+    <div class="card" id="menuOut"><em>Pulsa «Generar menú semanal».</em></div>
+  </section>
+</main>
+
+<footer>
+  <div>
+    <div style="font-size:.8rem;color:var(--gris)">Tu cesta</div>
+    <div class="big" id="total">0,00 €</div>
+  </div>
+  <div style="flex:1;max-width:260px">
+    <div class="bar" id="barra"><div style="width:0"></div></div>
+    <div style="font-size:.78rem;color:var(--gris)" id="restante"></div>
+  </div>
+  <button class="btn" id="pedir">Reservar</button>
+</footer>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
