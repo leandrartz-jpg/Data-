@@ -36,6 +36,7 @@ function init() {
   document.querySelectorAll(".tab").forEach((t) => (t.onclick = () => {
     document.querySelectorAll(".tab").forEach((x) => x.classList.toggle("on", x === t));
     $("#v-recetas").classList.toggle("hide", t.dataset.v !== "recetas");
+    $("#v-plan").classList.toggle("hide", t.dataset.v !== "plan");
     $("#v-compra").classList.toggle("hide", t.dataset.v !== "compra");
     $("#v-colegio").classList.toggle("hide", t.dataset.v !== "colegio");
   }));
@@ -43,6 +44,7 @@ function init() {
   $("#sugerir").onclick = sugerir;
   $("#vaciar").onclick = () => { state.cesta = {}; render(); };
   $("#genMenu").onclick = generarMenu;
+  $("#genPlan").onclick = generarPlan;
   $("#pedir").onclick = reservar;
   $("#recFiltros").onclick = (e) => {
     const f = e.target.dataset.f; if (!f) return;
@@ -214,6 +216,57 @@ function abrirReceta(id) {
     store.set("ahorro", store.get("ahorro", 0) + Math.max(0, PRECIO_DELIVERY_REF / 2 * r.raciones - c.total));
     $("#modal").classList.add("hide"); renderRecetas();
   };
+}
+
+// ---------- plan semanal automático ----------
+// Coste real de comprar: los productos se venden enteros (se redondea hacia arriba)
+function costeCompra(recetas, personas) {
+  const uso = {}; // id producto -> fracción total usada
+  recetas.forEach((r) => resolverCostes(r).forEach((i) => { if (i.prod) uso[i.prod.id] = (uso[i.prod.id] || 0) + i.f * (personas / r.raciones); }));
+  let total = 0; const lineas = [];
+  for (const [id, f] of Object.entries(uso)) {
+    const p = productoPorId(id), u = Math.max(1, Math.ceil(f - 1e-9));
+    total += p.p * u; lineas.push({ p, u, f });
+  }
+  return { total, lineas };
+}
+const resolverCostes = (r) => r.ing.map(resolverIng);
+
+function generarPlan() {
+  const presu = +$("#presu").value, n = +$("#diasPlan").value, piso = Math.max(1, +$("#piso").value);
+  const personas = Math.max(1, +$("#personas").value);
+  const pool = RECETAS.filter((r) => costeReceta(r).completa);
+  if (pool.length < 2) { $("#planOut").innerHTML = '<div class="card">Faltan recetas en esta zona.</div>'; return; }
+  let mejor = null;
+  for (let it = 0; it < 4000; it++) {
+    const sel = Array.from({ length: n }, () => pool[Math.floor(Math.random() * pool.length)]);
+    const rep = n - new Set(sel.map((r) => r.id)).size;
+    if (rep > Math.max(1, Math.floor(n / 3))) continue; // variedad mínima
+    const c = costeCompra(sel, personas);
+    const score = c.total + rep * 2;
+    if (!mejor || score < mejor.score) mejor = { sel, c, score };
+  }
+  const separado = mejor.sel.reduce((s, r) => s + costeCompra([r], personas).total, 0);
+  const ahorroReuso = Math.max(0, separado - mejor.c.total);
+  const dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+  const porTienda = {};
+  mejor.c.lineas.forEach((l) => (porTienda[l.p.comercio.nombre] ||= []).push(l));
+  const dentro = mejor.c.total <= presu;
+  $("#planOut").innerHTML = `
+    <div class="card hero"><div><b>${eur(mejor.c.total)}</b><br><small>compra de la semana</small></div>
+      <div style="text-align:right"><b>${eur(mejor.c.total / piso)}</b><br><small>por persona (${piso})</small></div></div>
+    <div class="card">
+      ${mejor.sel.map((r, i) => `<div class="dia"><b>${dias[i]}</b><div>${r.e} ${r.t}<br><small style="color:var(--gris)">⏱ ${r.min} min</small></div></div>`).join("")}
+      <p style="margin-bottom:0">${dentro ? `<span style="color:var(--verde)">✔ Dentro de tu presupuesto (${eur(presu)})</span>` : `<span style="color:var(--rojo)">✘ Supera tu presupuesto (${eur(presu)}); sube el presupuesto o baja las cenas.</span>`}<br>
+      🌿 Al reutilizar ingredientes ahorras <b>${eur(ahorroReuso)}</b> frente a comprar cada receta por separado.</p>
+    </div>
+    <div class="card"><b>Lista de la compra por tienda</b>
+      ${Object.entries(porTienda).map(([t, ls]) => `<div style="margin-top:8px"><u>${t}</u><ul class="lista">${ls.map((l) => `<li>${l.u} × ${l.p.n} <small style="color:var(--gris)">${eur(l.p.p * l.u)}</small></li>`).join("")}</ul></div>`).join("")}
+      <button class="btn" id="planCesta" style="width:100%">🧺 Pasar todo a la cesta</button>
+      <button class="btn sec" id="planOtra" style="width:100%;margin-top:8px">🔄 Otra combinación</button>
+    </div>`;
+  $("#planCesta").onclick = () => { state.cesta = {}; mejor.c.lineas.forEach((l) => (state.cesta[l.p.id] = l.u)); render(); document.querySelector('.tab[data-v="compra"]').click(); };
+  $("#planOtra").onclick = generarPlan;
 }
 
 init();

@@ -86,6 +86,7 @@
 
   <div class="tabs">
     <button class="tab on" data-v="recetas">🔥 Recetas</button>
+    <button class="tab" data-v="plan">📅 Plan</button>
     <button class="tab" data-v="compra">🧺 Compra</button>
     <button class="tab" data-v="colegio">🎒 Menú escolar</button>
   </div>
@@ -102,6 +103,20 @@
     </div>
     <div id="recetasGrid" class="grid"></div>
     <p class="aviso">*Estimación orientativa. Precios y ahorro de ejemplo; se calcularán con precios reales de cada comercio.</p>
+  </section>
+  <section id="v-plan" class="hide">
+    <div class="card">
+      <b>Tu semana resuelta</b>
+      <p class="aviso" style="margin:8px 0">Elegimos recetas que comparten ingredientes para gastar menos y desperdiciar nada.</p>
+      <div class="row">
+        <div><label for="diasPlan">Cenas a planificar</label>
+          <select id="diasPlan"><option>3</option><option selected>5</option><option>7</option></select></div>
+        <div><label for="piso">Compartir entre (personas)</label>
+          <input type="number" id="piso" min="1" max="10" value="1"></div>
+      </div>
+      <button class="btn warn" id="genPlan" style="margin-top:10px">✨ Crear mi plan</button>
+    </div>
+    <div id="planOut"></div>
   </section>
   <section id="v-compra" class="hide">
     <div class="card">
